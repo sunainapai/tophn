@@ -1,0 +1,61 @@
+<html>
+<head>
+    <title>Archive - TopHN</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<main id="archive">
+<h1>Archive</h1>
+<section>
+
+    {% for story in archives %}
+        {% set story_url = story.url %}
+        {% set comment_url = 'https://news.ycombinator.com/item?id=' + story.id | string %}
+
+        {% if story_url is none %}
+        {% set story_url = comment_url %}
+        {% endif %}
+
+        {% set domain = urllib.parse.urlparse(story_url).hostname %}
+        {% set time_hn = time.strftime("%Y-%m-%d %H:%M %Z", time.gmtime(story.time_hn)) %}
+        {% set time_tophn = time.strftime("%Y-%m-%d %H:%M %Z", time.gmtime(story.time_tophn)) %}
+
+        <div class="item">
+            <div>
+            <span class="story">
+                <a href="{{ story_url }}"> {{ story.title }}</a>
+            </span>
+            <span class="domain">
+                (<a href="{{ story_url }}">{{ domain }}</a>)
+            </span>
+            </div>
+
+            <div class="subtext">
+                <a href="{{ comment_url }}">On HN</a>
+                <span>|</span>
+                <time title="Published on HN">{{ time_hn }}</time>
+                <span>|</span>
+                <time title="Published on TopHN">{{ time_tophn }}</time>
+            </div>
+        </div>
+
+    {% endfor %}
+
+</section>
+</main>
+
+
+<footer>
+<nav>
+    <a href="/">Home</a>
+    <a href="/archive.html">Archive</a>
+    <a href="https://github.com/sunainapai/tophn">GitHub</a>
+    <a href="/about.html">About</a>
+</nav>
+</footer>
+
+</body>
+</html>

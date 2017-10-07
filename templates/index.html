@@ -1,0 +1,37 @@
+<html>
+<head>
+    <title>TopHN</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<main id="home">
+<section>
+
+    {% set comment_url = 'https://news.ycombinator.com/item?id=' + id|string %}
+    {% if url is none %}
+    {% set url = comment_url %}
+    {% endif %}
+
+    <div class="story">
+        <a href="{{ url }}">{{ title }}</a>
+    </div>
+    <div class="subtext">
+        <a href="{{ comment_url }}">Discuss on HN</a>
+    </div>
+</section>
+</main>
+
+<footer>
+<nav>
+    <a href="/">Home</a>
+    <a href="/archive.html">Archive</a>
+    <a href="https://github.com/sunainapai/tophn">GitHub</a>
+    <a href="/about.html">About</a>
+</nav>
+</footer>
+
+</body>
+</html>

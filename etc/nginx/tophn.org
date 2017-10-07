@@ -1,0 +1,35 @@
+# Nginx configuration for live environment.
+
+# https://tophn.org/
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name tophn.org;
+
+    ssl_certificate /etc/letsencrypt/live/tophn.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tophn.org/privkey.pem;
+
+    root /var/www/tophn.org;
+}
+
+# https://www.tophn.org/ => https://tophn.org/
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name www.tophn.org;
+
+    ssl_certificate /etc/letsencrypt/live/tophn.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tophn.org/privkey.pem;
+
+    return 301 https://tophn.org$request_uri;
+}
+
+# http://tophn.org/, http://www.tophn.org/ => https://tophn.org/
+server {
+    listen 80;
+    listen [::]:80;
+    server_name tophn.org www.tophn.org;
+    return 301 https://tophn.org$request_uri;
+}

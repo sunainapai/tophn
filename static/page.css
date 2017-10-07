@@ -1,0 +1,10 @@
+main {
+    max-width: 40em;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1em;
+}
+
+main section {
+    margin-top: 1em;
+}

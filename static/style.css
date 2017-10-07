@@ -1,0 +1,115 @@
+/* General */
+body {
+    color: #333333;
+    margin: 0;
+    font-family: helvetica, arial, sans-serif;
+    line-height: 1.5em;
+}
+
+main {
+    padding: 0 1em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-bottom: 0;
+    line-height: 1.5em;
+    text-align: center;
+}
+
+a:link, a:visited {
+    color: #3333ff;
+    text-decoration: none
+}
+
+a:hover, a:active {
+    color: #0000ff;
+    text-decoration: underline
+}
+
+footer nav {
+    text-align: center;
+    margin-top: 1em;
+}
+
+footer nav a {
+    margin-right: 2em;
+    font-size: small;
+}
+
+footer nav a:last-child {
+    margin-right: 0;
+}
+
+
+/* Home page */
+main#home {
+    display: flex;
+    height: 90%;
+}
+
+#home section {
+    margin: auto;
+}
+
+#home .story {
+    font-size: xx-large;
+    line-height: 1.5em;
+}
+
+#home .domain, #home .subtext {
+    font-size: small;
+}
+
+#home .domain, #home .subtext {
+    text-align: center;
+}
+
+
+/* Archive page */
+#archive section {
+    display: table;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#archive .item {
+    margin-top: 1em;
+}
+
+#archive .domain {
+    font-size: small;
+}
+
+#archive .subtext {
+    font-size: x-small;
+    color: #808080;
+}
+
+#archive .subtext span {
+    margin: 0 0.5em;
+}
+
+
+/* Common to Home and Archive pages */
+.story a:link, .story a:visited {
+    color: #333333;
+}
+
+.story a:hover, .story a:active {
+    color: #000000;
+}
+
+.domain, .domain a:link, .domain a:visited {
+    color: #808080;
+}
+
+.domain a:hover, .domain a:active {
+    color: #000000;
+}
+
+
+/* About page */
+main#archive, main#about {
+    max-width: 40em;
+    margin: 0 auto;
+}
