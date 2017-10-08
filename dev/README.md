@@ -36,7 +36,7 @@ the website on local system.
  3. Configure Nginx for development.
 
         sudo ln -sf ~/git/tophn/etc/nginx/dev.tophn.org /etc/nginx/sites-enabled/
-        sudo ln -sf ~/git/tophn/_live /var/www/tophn.org
+        sudo ln -sf ~/tophn.org/live /var/www/tophn.org
         sudo systemctl reload nginx
 
  4. Associate the hostname `tophn` with the loopback interface.
