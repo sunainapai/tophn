@@ -381,7 +381,8 @@ def _configure_logging(config):
     # Create a timed rotating file handler.
     formatter = logging.Formatter(fmt=msg_format, datefmt=date_format)
     handler = logging.handlers.TimedRotatingFileHandler(
-                  log_file, when=rotation_time, backupCount=backup_count)
+                  log_file, when=rotation_time,
+                  backupCount=int(backup_count))
     handler.setFormatter(formatter)
 
     # Configure the root logger.
