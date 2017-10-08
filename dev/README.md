@@ -57,7 +57,7 @@ the website on local system.
  7. Generate the website.
 
         cd ~/git/tophn
-        nohup ./tophn.sh &
+        nohup ./tophn.sh >> ~/tophn.org/log/nohup.out &
 
  8. Visit http://tophn/ with a web browser to see a local copy of the
     website.
