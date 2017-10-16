@@ -199,7 +199,7 @@ def _was_published_earlier(archive_list, hn_id):
     return hn_id in [story['id'] for story in archive_list]
 
 
-def _check_new_top_story(config):
+def _check_new_top_story(config, archive_list, cur_time):
     """Check if there is a new top story that was not published earlier.
 
     The top story is defined as the TopHN top story, i.e. the most
@@ -207,29 +207,22 @@ def _check_new_top_story(config):
 
     Select the most frequent top ID from the sampling database. If this
     selected top ID was not published earlier (i.e. does not exist in
-    the archive database), then update the archive database with this
-    top ID. Finally, return the archive database as a list object.
+    the archive database), then return the top ID.
 
     If the top ID was published earlier (i.e. exists in the archive
     database), then do nothing and return None.
 
     Arguments:
       config (configparser.ConfigParser): Configuration object.
+      archive_list (list): Each entry of the list is a dictionary
+        representing an HN story that was once a top story on TopHN.
+      cur_time (int): Current Unix timestamp rounded to seconds.
 
     Returns:
-      list: List of top stories from archive database with the new top
-        story found if a new top story needs to be published;
-        None otherwise.
+      int: HN ID if a new top story needs to be published, None
+        otherwise.
     """
     database_ids = config.get('database', 'ids')
-    database_archive = config.get('database', 'archive')
-
-    # Get the current Unix timestamp to be used everywhere when
-    # processing a particular event. The HN item has no milliseconds in
-    # the Unix timestamp. Use the same format for our timestamp.
-    cur_time = int(round(time.time()))
-    cur_time_str = time.strftime("%Y-%m-%d %H:%M:%S %Z", time.gmtime(cur_time))
-    logger.info('Current Time: {}: {}'.format(cur_time, cur_time_str))
 
     # Get the ID of the current top story on HN.
     top_id_on_hn = _get_top_id(config)
@@ -240,20 +233,14 @@ def _check_new_top_story(config):
         id_info = str(top_id_on_hn) + ',' + str(cur_time)
         print(id_info, file=f)
 
-    # Load all previously published story IDs from archive database.
-    if os.path.isfile(database_archive):
-        with open(database_archive) as f:
-            archive_list = json.load(f)
-    else:
-        archive_list = []
-
     # Remove entries older than 24 hours from sampling database.
     samples = _remove_old_entries_from_db(config, cur_time)
 
     # Find the most frequent story ID in the samples and select it for
     # publication.
     top_id = _select_top_id(samples)
-    logger.info('Most frequent top ID in the past 24 hours: {}'.format(top_id))
+    logger.info('Most frequent top ID in the past 24 hours: {}'
+                .format(top_id))
 
     # If the top story ID selected for publication was already
     # published, then do nothing.
@@ -262,10 +249,23 @@ def _check_new_top_story(config):
                     'earlier'.format(top_id))
         return None
 
+    return top_id
+
+
+def _add_new_top_story_to_archive(config, top_id, archive_list, cur_time):
+    """Add the specified story to the archive database.
+
+    Arguments:
+      config (configparser.ConfigParser): Configuration object.
+      top_id (int): HN ID of the selected story
+      archive_list (list): Each entry of the list is a dictionary
+        representing an HN story that was once a top story on TopHN.
+      cur_time (int): Current Unix timestamp rounded to seconds.
+    """
+    database_archive = config.get('database', 'archive')
+
     # Get the HN story for the selected top ID.
     top_story = _get_story(config, top_id)
-    logger.info('Publishing top story on TopHN: {}: {}'.
-                format(top_id, top_story))
 
     top_story_dict = {
         'by':
@@ -295,6 +295,23 @@ def _check_new_top_story(config):
     with open(database_archive, 'w') as f:
         json.dump(archive_list, f, indent=2)
 
+
+def _read_archive(config):
+    """Return the list of top stories from archive database.
+
+    Returns:
+      list: List of top stories from archive database. Each entry of the
+        list is a dictionary representing an HN story that was once a
+        top story on TopHN. An empty list if there is no archive
+        database.
+    """
+    database_archive = config.get('database', 'archive')
+    if os.path.isfile(database_archive):
+        with open(database_archive) as f:
+            archive_list = json.load(f)
+    else:
+        archive_list = []
+
     return archive_list
 
 
@@ -303,6 +320,8 @@ def _stage_top_hn(config, archive_list):
 
     Arguments:
       config (configparser.ConfigParser): Configuration object.
+      archive_list (list): Each entry of the list is a dictionary
+        representing an HN story that was once a top story on TopHN.
     """
     templates_home = config.get('templates', 'home')
     templates_archive = config.get('templates', 'archive')
@@ -397,14 +416,43 @@ def _main(config):
       config (configparser.ConfigParser): Configuration object.
     """
     poll_interval = config.getint('poll', 'interval')
+    live_dir = config.get('site', 'live_dir')
     while True:
         try:
             logger.info('Working ...')
-            archive_list = _check_new_top_story(config)
 
-            if archive_list is not None:
+            # Get the current Unix timestamp to be used everywhere when
+            # processing a particular event. The HN item has no
+            # milliseconds in the Unix timestamp. Use the same format
+            # for our timestamp.
+            cur_time = int(round(time.time()))
+            cur_time_str = time.strftime("%Y-%m-%d %H:%M:%S %Z",
+                                         time.gmtime(cur_time))
+            logger.info('Current Time: {}: {}'
+                        .format(cur_time, cur_time_str))
+
+            archive_list = _read_archive(config)
+            new_story_id = _check_new_top_story(config, archive_list,
+                                                cur_time)
+
+            if new_story_id is not None:
+                logger.info('Publishing top story on TopHN: {}: {}'.
+                            format(new_story_id, archive_list[-1]))
+                _add_new_top_story_to_archive(config, new_story_id,
+                                              archive_list, cur_time)
                 _stage_top_hn(config, archive_list)
                 _publish_top_hn(config)
+
+            elif not os.path.isdir(live_dir):
+                # If live directory is missing but there is no new
+                # story, we don't need to update archive database.
+                logger.info('Live site is missing; publishing ...')
+                _stage_top_hn(config, archive_list)
+                _publish_top_hn(config)
+
+            else:
+                logger.info('Live site exists; no new top story; '
+                            'nothing to publish')
 
         except Exception as e:
             logger.error('Unexpected error occurred; error: {!r}'.format(e))
