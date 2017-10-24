@@ -132,37 +132,38 @@ def _select_top_id(hn_records):
     return most_frequent_id
 
 
-def _remove_old_entries_from_db(config, cur_time):
-    """Return entries from the past 24 hours and remove the rest.
+def _get_24_hour_samples_from_db(config, cur_time, cur_file):
+    """Return entries from the past 24 hours.
 
     Arguments:
       config (configparser.ConfigParser): Configuration object.
       cur_time (int): Current Unix timestamp rounded to seconds.
+      cur_file (str): Current database file
 
     Returns:
       list: Entries in database with timestamps within past 24 hours as
         a list of tuples.
     """
-    database_ids = config.get('database', 'ids')
+    time_24_hours_ago = cur_time - 24 * 60 * 60
+    prev_file = _get_ids_filename(config, time_24_hours_ago)
 
-    lines_selected = []
     hn_records = []
+    lines = []
 
-    # Remove all entries with timestamps older than 24 hours and store
+    # Load entries of current day and previous day into a list.
+    for ids_file in cur_file, prev_file:
+        if os.path.isfile(ids_file):
+            with open(ids_file, 'r') as f:
+                lines.extend(f.readlines())
+        else:
+            logger.info('File does not exist: {}'.format(ids_file))
+
+    # Select all entries with timestamps within past 24 hours and store
     # in the result list.
-    with open(database_ids, 'r') as f:
-        lines = f.readlines();
-        time_24_hours_ago = cur_time - 24 * 60 * 60
-        for line in lines:
-            hn_id, timestamp = line.split(',')
-            if int(timestamp) > time_24_hours_ago:
-                lines_selected.append(line)
-                hn_records.append((int(hn_id), int(timestamp)))
-
-    # Write the selected entries from the past 24 hours back to our
-    # database.
-    with open(database_ids, 'w') as f:
-        f.write(''.join(lines_selected))
+    for line in lines:
+        hn_id, timestamp = line.split(',')
+        if int(timestamp) > time_24_hours_ago:
+            hn_records.append((int(hn_id), int(timestamp)))
 
     return hn_records
 
@@ -199,15 +200,36 @@ def _was_published_earlier(archive_list, hn_id):
     return hn_id in [story['id'] for story in archive_list]
 
 
+def _get_ids_filename(config, timestamp):
+    """Get the ids filename for a given timestamp.
+
+    Arguments:
+      config (configparser.ConfigParser): Configuration object.
+      timestamp (int): Unix timestamp rounded to seconds.
+
+    Returns:
+      str: Path of the filename that contains the HN ids for the given
+        timestamp.
+    """
+    database_dir = config.get('database', 'db_dir')
+    database_ids = config.get('database', 'id_file_suffix')
+    gmtime = time.gmtime(timestamp)
+    database_file = (database_dir +
+                     time.strftime('%Y', gmtime) + '/' +
+                     time.strftime('%Y-%m-%d', gmtime) + '-' +
+                     database_ids)
+    return database_file
+
+
 def _check_new_top_story(config, archive_list, cur_time):
     """Check if there is a new top story that was not published earlier.
 
     The top story is defined as the TopHN top story, i.e. the most
     frequent HN top story in the last 24 hours.
 
-    Select the most frequent top ID from the sampling database. If this
-    selected top ID was not published earlier (i.e. does not exist in
-    the archive database), then return the top ID.
+    Select the most frequent top ID from the database. If this selected
+    top ID was not published earlier (i.e. does not exist in the archive
+    database), then return the top ID.
 
     If the top ID was published earlier (i.e. exists in the archive
     database), then do nothing and return None.
@@ -222,19 +244,27 @@ def _check_new_top_story(config, archive_list, cur_time):
       int: HN ID if a new top story needs to be published, None
         otherwise.
     """
-    database_ids = config.get('database', 'ids')
-
+    database_file = _get_ids_filename(config, cur_time)
     # Get the ID of the current top story on HN.
     top_id_on_hn = _get_top_id(config)
     logger.info('Top ID on HN: {}'.format(top_id_on_hn))
 
-    # Save the current top ID with timestamp in the sampling database.
-    with open(database_ids, 'a') as f:
+    # Create database directory for current timestamp if it does not
+    # already exist.
+    database_year_dir = os.path.dirname(database_file)
+    if not os.path.isdir(database_year_dir):
+        os.makedirs(database_year_dir)
+        logger.info('Created database directory: {}'
+                    .format(database_year_dir))
+
+    # Save the current top ID with timestamp in the database.
+    with open(database_file, 'a') as f:
         id_info = str(top_id_on_hn) + ',' + str(cur_time)
         print(id_info, file=f)
 
-    # Remove entries older than 24 hours from sampling database.
-    samples = _remove_old_entries_from_db(config, cur_time)
+    # Get entries within past 24 hours from database.
+    samples = _get_24_hour_samples_from_db(config, cur_time,
+                                           database_file)
 
     # Find the most frequent story ID in the samples and select it for
     # publication.
@@ -372,7 +402,7 @@ def _publish_top_hn(config):
         logger.info('Moving {} to {} ...'.format(live_dir, defunct_dir))
         shutil.move(live_dir, defunct_dir)
     else:
-        logger.info('Live site does not exist')
+        logger.info('Live site is missing; nothing to backup')
 
     logger.info('Moving {} to {} ...'.format(stage_dir, live_dir))
     shutil.move(stage_dir, live_dir)
@@ -436,10 +466,10 @@ def _main(config):
                                                 cur_time)
 
             if new_story_id is not None:
-                logger.info('Publishing top story on TopHN: {}: {}'.
-                            format(new_story_id, archive_list[-1]))
                 _add_new_top_story_to_archive(config, new_story_id,
                                               archive_list, cur_time)
+                logger.info('Publishing top story on TopHN: {}: {}'.
+                            format(new_story_id, archive_list[-1]))
                 _stage_top_hn(config, archive_list)
                 _publish_top_hn(config)
 
