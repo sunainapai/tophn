@@ -42,7 +42,11 @@ footer nav a:last-child {
 
 
 /* Home page */
-main#home {
+html#home, #home body {
+    height: 100%;
+}
+
+#home main {
     display: flex;
     height: 90%;
 }
