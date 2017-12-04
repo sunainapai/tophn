@@ -50,6 +50,7 @@ import urllib
 import urllib.request
 import os
 import shutil
+import collections
 
 import jinja2
 
@@ -109,9 +110,9 @@ def _select_top_id(hn_records):
     Returns:
       int: HN ID selected as the top ID.
     """
-    # This dictionary will contain key-value pairs where story ID is the
-    # key and frequency of the story ID is the value.
-    id_frequency = {}
+    # This ordered dictionary will contain key-value pairs where story
+    # ID is the key and frequency of the story ID is the value.
+    id_frequency = collections.OrderedDict()
 
     # Create a dictionary where each key is a story ID and each value is
     # the frequency of that story ID.
@@ -120,12 +121,12 @@ def _select_top_id(hn_records):
 
     # Select the story ID with the highest frequency. If there is a tie
     # between two story IDs with the same highest frequency, we select
-    # the one that is more recent on HN (i.e. more towards the bottom of
-    # our database file).
+    # the one that is more recent on HN (i.e., more towards the end of
+    # our database file and hence more towards the end of id_frequency).
     max_frequency = -1
     most_frequent_id = -1
     for hn_id, frequency in id_frequency.items():
-        if frequency > max_frequency:
+        if frequency >= max_frequency:
             max_frequency = frequency
             most_frequent_id = hn_id
 
@@ -151,7 +152,7 @@ def _get_24_hour_samples_from_db(config, cur_time, cur_file):
     lines = []
 
     # Load entries of current day and previous day into a list.
-    for ids_file in cur_file, prev_file:
+    for ids_file in prev_file, cur_file:
         if os.path.isfile(ids_file):
             with open(ids_file, 'r') as f:
                 lines.extend(f.readlines())
