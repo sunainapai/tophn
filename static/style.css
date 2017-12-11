@@ -29,6 +29,7 @@ a:hover, a:active {
 footer nav {
     text-align: center;
     margin-top: 1em;
+    margin-bottom: 1em;
 }
 
 footer nav a {
