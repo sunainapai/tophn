@@ -1,0 +1,16 @@
+[Unit]
+Description=TopHN
+After=network.target
+
+[Service]
+User=sunaina
+WorkingDirectory=/home/sunaina/git/tophn
+ExecStart=/home/sunaina/.venv/tophn.org/bin/python3 tophn.py
+Restart=always
+RestartSec=5
+
+# WorkingDirectory is set because tophn.py reads config.ini from the
+# current directory.
+
+[Install]
+WantedBy=multi-user.target
