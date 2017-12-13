@@ -59,6 +59,7 @@ html#home, #home body {
 #home .story {
     font-size: xx-large;
     line-height: 1.5em;
+    text-align: center;
 }
 
 #home .domain, #home .subtext {
