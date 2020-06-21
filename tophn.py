@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2017 Sunaina Pai
+# Copyright (c) 2017-2020 Sunaina Pai
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -133,7 +133,7 @@ def _select_top_id(hn_records):
     return most_frequent_id
 
 
-def _get_24_hour_samples_from_db(config, cur_time, cur_file):
+def _get_24_hour_samples_from_db(config, cur_time, ids_file):
     """Return entries from the past 24 hours.
 
     Arguments:
@@ -146,23 +146,20 @@ def _get_24_hour_samples_from_db(config, cur_time, cur_file):
         a list of tuples.
     """
     time_24_hours_ago = cur_time - 24 * 60 * 60
-    prev_file = _get_ids_filename(config, time_24_hours_ago)
 
     hn_records = []
-    lines = []
+    id_list = []
 
     # Load entries of current day and previous day into a list.
-    for ids_file in prev_file, cur_file:
-        if os.path.isfile(ids_file):
-            with open(ids_file, 'r') as f:
-                lines.extend(f.readlines())
-        else:
-            logger.info('File does not exist: {}'.format(ids_file))
+    if os.path.isfile(ids_file):
+        with open(ids_file) as f:
+            id_list = json.load(f)
+    else:
+        logger.info('File does not exist: {}'.format(ids_file))
 
     # Select all entries with timestamps within past 24 hours and store
     # in the result list.
-    for line in lines:
-        hn_id, timestamp = line.split(',')
+    for hn_id, timestamp in id_list:
         if int(timestamp) > time_24_hours_ago:
             hn_records.append((int(hn_id), int(timestamp)))
 
@@ -201,27 +198,6 @@ def _was_published_earlier(archive_list, hn_id):
     return hn_id in [story['id'] for story in archive_list]
 
 
-def _get_ids_filename(config, timestamp):
-    """Get the ids filename for a given timestamp.
-
-    Arguments:
-      config (configparser.ConfigParser): Configuration object.
-      timestamp (int): Unix timestamp rounded to seconds.
-
-    Returns:
-      str: Path of the filename that contains the HN ids for the given
-        timestamp.
-    """
-    database_dir = config.get('database', 'db_dir')
-    database_ids = config.get('database', 'id_file_suffix')
-    gmtime = time.gmtime(timestamp)
-    database_file = (database_dir +
-                     time.strftime('%Y', gmtime) + '/' +
-                     time.strftime('%Y-%m-%d', gmtime) + '-' +
-                     database_ids)
-    return database_file
-
-
 def _check_new_top_story(config, archive_list, cur_time):
     """Check if there is a new top story that was not published earlier.
 
@@ -245,27 +221,18 @@ def _check_new_top_story(config, archive_list, cur_time):
       int: HN ID if a new top story needs to be published, None
         otherwise.
     """
-    database_file = _get_ids_filename(config, cur_time)
+    ids_file = config.get('database', 'ids')
     # Get the ID of the current top story on HN.
     top_id_on_hn = _get_top_id(config)
     logger.info('Top ID on HN: {}'.format(top_id_on_hn))
 
-    # Create database directory for current timestamp if it does not
-    # already exist.
-    database_year_dir = os.path.dirname(database_file)
-    if not os.path.isdir(database_year_dir):
-        os.makedirs(database_year_dir)
-        logger.info('Created database directory: {}'
-                    .format(database_year_dir))
-
-    # Save the current top ID with timestamp in the database.
-    with open(database_file, 'a') as f:
-        id_info = str(top_id_on_hn) + ',' + str(cur_time)
-        print(id_info, file=f)
-
-    # Get entries within past 24 hours from database.
+    # Re-write ids file with only the last 24 hours data + the currently
+    # sampled top ID on HN.
     samples = _get_24_hour_samples_from_db(config, cur_time,
-                                           database_file)
+                                           ids_file)
+    samples.append([top_id_on_hn, cur_time])
+    with open(ids_file, 'w') as f:
+        json.dump(samples, f, indent=2)
 
     # Find the most frequent story ID in the samples and select it for
     # publication.
@@ -497,6 +464,11 @@ if __name__ == '__main__':
     # Read configuration.
     config  = configparser.ConfigParser()
     config.read('config.ini')
+
+    # Create runtime directories.
+    os.makedirs(config.get('database', 'db_dir'), exist_ok=True)
+    os.makedirs(os.path.dirname(config.get('logging', 'file')),
+                                exist_ok=True)
 
     # Configure logging.
     _configure_logging(config)

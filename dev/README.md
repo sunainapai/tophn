@@ -44,24 +44,20 @@ the website on local system.
 
         echo 127.0.2.1 tophn | sudo tee -a /etc/hosts
 
- 5. Set up the log and database directories.
-
-        mkdir -p ~/tophn.org/log ~/tophn.org/database
-
- 6. Install the necessary tools in the virtual environment.
+ 5. Install the necessary tools in the virtual environment.
 
         python3 -m venv ~/.venv/tophn.org/
         . ~/.venv/tophn.org/bin/activate
         pip install jinja2 urllib3
         deactivate
 
- 7. Generate the website.
+ 6. Generate the website.
 
         cd ~/git/tophn
         sudo ln -sf ~/git/tophn/etc/systemd/tophn.service /etc/systemd/system/
         sudo systemctl start tophn
 
- 8. Visit http://tophn/ with a web browser to see a local copy of the
+ 7. Visit http://tophn/ with a web browser to see a local copy of the
     website.
 
 
