@@ -11,11 +11,8 @@ help:
 	@echo '  http    Reinstall live website and serve with Nginx via HTTP.'
 	@echo '  update  Pull latest Git commits and update live website.'
 	@echo '  rm      Uninstall live website.'
-	@echo '  local   Generate local website and serve with Python.'
 	@echo
 	@echo 'Low-level targets:'
-	@echo '  live    Generate live website but do not serve.'
-	@echo '  site    Generate local website but do not serve.'
 	@echo '  pull    Pull latest Git commits but do not update live website.'
 	@echo
 	@echo 'Default target:'
@@ -27,7 +24,7 @@ setup:
 	python3 -m venv /opt/venv/tophn
 	/opt/venv/tophn/bin/pip3 install jinja2
 
-app:
+tophn:
 	systemctl enable "$$PWD/etc/tophn.service"
 	systemctl daemon-reload
 	systemctl start tophn
@@ -41,7 +38,7 @@ https: http
 	systemctl reload nginx
 	@echo Done; echo
 
-http: rm live app
+http: rm tophn
 	@echo Setting up HTTP website ...
 	ln -snf "$$PWD/_live" '/var/www/$(FQDN)'
 	ln -snf "$$PWD/etc/nginx/http.$(FQDN)" '/etc/nginx/sites-enabled/$(FQDN)'
@@ -49,7 +46,7 @@ http: rm live app
 	echo 127.0.0.1 '$(NAME)' >> /etc/hosts
 	@echo Done; echo
 
-update: pull live
+update: pull
 
 rm: checkroot
 	@echo Removing website ...
@@ -62,7 +59,7 @@ rm: checkroot
 	crontab -l | grep -v "^#" || :
 	@echo Done; echo
 
-local: site
+local:
 	@echo Serving website locally ...
 	if python3 -c "import http.server" 2> /dev/null; then \
 		echo Running Python3 http.server ...; \
@@ -76,13 +73,6 @@ local: site
 	else \
 		echo Cannot find http.server or SimpleHTTPServer.;  \
 	fi
-	@echo Done; echo
-
-live: site
-	@echo Setting up live directory ...
-	mv _live _gone || :
-	mv _site _live
-	rm -rf _gone
 	@echo Done; echo
 
 pull:
