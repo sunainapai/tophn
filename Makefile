@@ -23,7 +23,7 @@ help:
 
 setup:
 	apt-get update
-	apt-get -y install nginx certbot
+	apt-get -y install nginx certbot python3-venv
 	python3 -m venv /opt/venv/tophn
 	/opt/venv/tophn/bin/pip3 install jinja2
 
