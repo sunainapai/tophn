@@ -25,6 +25,8 @@ setup:
 	/opt/venv/tophn/bin/pip3 install jinja2
 
 tophn:
+	mkdir -p /opt/tophn.org
+	chown www-data /opt/tophn.org
 	systemctl enable "$$PWD/etc/tophn.service"
 	systemctl daemon-reload
 	systemctl start tophn
