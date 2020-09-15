@@ -42,7 +42,7 @@ https: http
 
 http: rm tophn
 	@echo Setting up HTTP website ...
-	ln -snf "$$PWD/_live" '/var/www/$(FQDN)'
+	ln -snf "/opt/tophn.org/live" '/var/www/$(FQDN)'
 	ln -snf "$$PWD/etc/nginx/http.$(FQDN)" '/etc/nginx/sites-enabled/$(FQDN)'
 	systemctl reload nginx
 	echo 127.0.0.1 '$(NAME)' >> /etc/hosts
