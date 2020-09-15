@@ -25,11 +25,13 @@ setup:
 	/opt/venv/tophn/bin/pip3 install jinja2
 
 tophn:
+	@echo Setting up TopHN app ...
 	mkdir -p /opt/tophn.org
 	chown www-data /opt/tophn.org
 	systemctl enable "$$PWD/etc/tophn.service"
 	systemctl daemon-reload
 	systemctl start tophn
+	@echo Done; echo
 
 https: http
 	@echo Setting up HTTPS website ...
@@ -56,6 +58,11 @@ rm: checkroot
 	rm -f '/var/www/$(FQDN)'
 	systemctl reload nginx
 	sed -i '/$(NAME)/d' /etc/hosts
+	#
+	@echo Removing TopHN app ...
+	-systemctl stop tophn
+	-systemctl disable tophn
+	systemctl daemon-reload
 	#
 	# Following crontab entries left intact:
 	crontab -l | grep -v "^#" || :
