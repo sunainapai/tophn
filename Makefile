@@ -86,8 +86,7 @@ rm: checkroot
 	rm -rf /opt/backup
 	#
 	@echo Removing backup user ...
-	deluser --remove-home bkpuser
-
+	-deluser --remove-home bkpuser
 	#
 	# Following crontab entries left intact:
 	crontab -l | grep -v "^#" || :
