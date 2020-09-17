@@ -25,9 +25,27 @@ setup:
 	/opt/venv/tophn/bin/pip3 install jinja2
 
 tophn:
+	@echo Setting up database backup user ...
+	adduser bkpuser --gecos '' --disabled-password
+	echo "machine github.com login tophn $(GITPASS)" > /home/bkpuser/.netrc
+	chown bkpuser:bkpuser /home/bkpuser/.netrc
+	chmod 600 /home/bkpuser/.netrc
+	#
+	@echo Getting backup database ...
+	mkdir -p /opt/backup
+	chown bkpuser:bkpuser /opt/backup
+	cd /opt/backup
+	sudo -u bkpuser \
+		git clone --depth 5 https://github.com/tophn/tophn-db-backup.git
+	#
+	@echo Copying database backup to working directory ...
+	mkdir -p /opt/tophn.org/database
+	cp /opt/backup/tophn-db-backup/ids.json /opt/tophn.org/database
+	cp /opt/backup/tophn-db-backup/archive.json /opt/tophn.org/database
+	chown -R www-data:www-data /opt/tophn.org
+	rm -rf /opt/backup/tophn-db-backup
+	#
 	@echo Setting up TopHN app ...
-	mkdir -p /opt/tophn.org
-	chown www-data /opt/tophn.org
 	systemctl enable "$$PWD/etc/tophn.service"
 	systemctl daemon-reload
 	systemctl start tophn
@@ -63,6 +81,13 @@ rm: checkroot
 	-systemctl stop tophn
 	-systemctl disable tophn
 	systemctl daemon-reload
+	#
+	@echo Removing backup directory ...
+	rm -rf /opt/backup
+	#
+	@echo Removing backup user ...
+	deluser --remove-home bkpuser
+
 	#
 	# Following crontab entries left intact:
 	crontab -l | grep -v "^#" || :
