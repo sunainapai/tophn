@@ -34,8 +34,7 @@ tophn:
 	@echo Getting backup database ...
 	mkdir -p /opt/backup
 	chown bkpuser:bkpuser /opt/backup
-	cd /opt/backup
-	sudo -u bkpuser \
+	cd /opt/backup && sudo -u bkpuser \
 		git clone --depth 5 https://github.com/tophn/tophn-db-backup.git
 	#
 	@echo Copying database backup to working directory ...
