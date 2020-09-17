@@ -80,6 +80,7 @@ rm: checkroot
 	-systemctl stop tophn
 	-systemctl disable tophn
 	systemctl daemon-reload
+	rm -rf /opt/tophn.org/live
 	#
 	@echo Removing backup directory ...
 	rm -rf /opt/backup
